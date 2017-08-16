@@ -60,6 +60,9 @@ socket.on('authenticated', function() {
     console.log("message is: " + msg)
     msg = JSON.parse(msg);
     // start the tunnel!
+    if (argv.env == 'test' || argv.env == 'local'){
+      msg.options.test = true;
+    }
     new Tunnel(msg.user.username, msg.user.authkey, msg.options).start()
   })
 
