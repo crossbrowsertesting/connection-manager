@@ -25,12 +25,14 @@ var argv = require('yargs')
 function getApiUrl(env){
   switch(env){
     case 'prod':
-      return 'https://crossbrowsertesting.com/tunnelserver'
+      return 'https://crossbrowsertesting.com/localconman';
+    case 'qa':
+      return 'https://qaapp.crossbrowsertesting.com/localconman';
     case 'test':
-      return 'https://test.crossbrowsertesting.com/tunnelserver'
-      // return 'http://10.191.1.5:3000/tunnelserver'
+      // return 'https://test.crossbrowsertesting.com/localconman'
+      return 'http://173.12.250.100/localconman';
     case 'local':
-      return 'http://localhost:3000/tunnelserver'
+      return 'http://localhost:3000/localconman';
   }
 }
 
@@ -38,7 +40,9 @@ function getApiUrl(env){
 // var socket = socketIo.connect("http://localhost:3000/socket/socket");
 var socket = socketIo(getApiUrl(argv.env),
     { path: "/api/v3/socket.io",
-      reconnect: true }
+      reconnect: true,
+      extraHeaders: {'heyo': 'forealz'}
+    }
 );
 
 
