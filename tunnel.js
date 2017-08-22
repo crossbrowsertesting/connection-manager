@@ -25,10 +25,12 @@ var Tunnel = function(user, auth, params){
   this.tunnelLogs = ''
 
   this.start = (cb) => {
-    console.log(`going to exec process with: cbt_tunnels ${this.args.join(' ')}`)
+    console.log(`going to exec process with: node ./cmd_start.js ${this.args.join(' ')}`)
     var cbt_tunnels_dir = require.resolve('cbt_tunnels');
     // this.tunnelProc = exec(`node ./cmd_start.js`, this.args, {detached: false})
-    this.tunnelProc = exec(`node ./cmd_start.js` + this.args.join(' '))
+    this.tunnelProc = exec(`node ./node_modules/cbt_tunnels/cmd_start.js ` + this.args.join(' '), (err, stdout, stderr) => {
+      console.log("cbt_tunnels closed")
+    })
     // collect tunnel proc logs
     this.tunnelProc.stdout.on('data', (chunk) => {
       this.tunnelLogs += chunk
