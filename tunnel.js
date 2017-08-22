@@ -1,4 +1,4 @@
-var spawn = require('child_process').spawn;
+var exec = require('child_process').exec;
 var util = require('util');
 
 var createLaunchArgs = function(user, auth, params){
@@ -25,8 +25,9 @@ var Tunnel = function(user, auth, params){
   this.tunnelLogs = ''
 
   this.start = (cb) => {
-    console.log(`going to spawn process with: cbt_tunnels ${this.args.join(' ')}`)
-    this.tunnelProc = spawn('node ./node_modules/cbt_tunnels/cmd_start.js', this.args, {detached: false})
+    console.log(`going to exec process with: cbt_tunnels ${this.args.join(' ')}`)
+    var cbt_tunnels_dir = require.resolve('cbt_tunnels');
+    this.tunnelProc = exec(`node ./cmd_start.js`, this.args, {detached: false})
     // collect tunnel proc logs
     this.tunnelProc.stdout.on('data', (chunk) => {
       this.tunnelLogs += chunk
