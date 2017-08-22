@@ -26,7 +26,7 @@ var Tunnel = function(user, auth, params){
 
   this.start = (cb) => {
     console.log(`going to spawn process with: cbt_tunnels ${this.args.join(' ')}`)
-    this.tunnelProc = spawn('cbt_tunnels', this.args, {detached: false})
+    this.tunnelProc = spawn('node ./node_modules/cbt_tunnels/cmd_start.js', this.args, {detached: false})
     // collect tunnel proc logs
     this.tunnelProc.stdout.on('data', (chunk) => {
       this.tunnelLogs += chunk
