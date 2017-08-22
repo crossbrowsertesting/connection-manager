@@ -27,7 +27,8 @@ var Tunnel = function(user, auth, params){
   this.start = (cb) => {
     console.log(`going to exec process with: cbt_tunnels ${this.args.join(' ')}`)
     var cbt_tunnels_dir = require.resolve('cbt_tunnels');
-    this.tunnelProc = exec(`node ./cmd_start.js`, this.args, {detached: false})
+    // this.tunnelProc = exec(`node ./cmd_start.js`, this.args, {detached: false})
+    this.tunnelProc = exec(`node ./cmd_start.js` + this.args.join(' '))
     // collect tunnel proc logs
     this.tunnelProc.stdout.on('data', (chunk) => {
       this.tunnelLogs += chunk
