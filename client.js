@@ -36,6 +36,8 @@ function getApiUrl(env){
   }
 }
 
+var alreadyConnected = false;
+
 // var socket = socketIo("http://localhost:3000/socket", { path: "/socket"} );
 // var socket = socketIo.connect("http://localhost:3000/socket/socket");
 var socket = socketIo(getApiUrl(argv.env),
@@ -76,38 +78,42 @@ socket.on('reconnect_failed', (err) => {
 })
 
 socket.on('connect', () => {
-  console.log("connection established! Initiating auth!");
-  socket.emit('authenticate', {username: argv.username, authkey: argv.authkey});
-  socket.on('authenticated', function() {
-    // `authenticated` is emitted by socketio-auth server 
-    console.log("authentication successful!");
-    // setup the other socket message handlers
-    socket.on('start', (msg) => {
-      console.log("got a start message! time to start a tunnel....");
-      console.log("message is: " + msg)
-      msg = JSON.parse(msg);
-      // start the tunnel!
-      if (argv.env == 'test' || argv.env == 'local'){
-        msg.options.test = true;
-      }
-      new Tunnel(msg.user.username, msg.user.authkey, msg.options).start()
-    })
+  if (alreadyConnected === false){
+    console.log("connection established! Initiating auth!");
+    socket.emit('authenticate', {username: argv.username, authkey: argv.authkey});
+    socket.on('authenticated', function() {
+      // `authenticated` is emitted by socketio-auth server 
+      console.log("authentication successful!");
+      // setup the other socket message handlers
+      socket.on('start', (msg) => {
+        console.log("got a start message! time to start a tunnel....");
+        console.log("message is: " + msg)
+        msg = JSON.parse(msg);
+        // start the tunnel!
+        if (argv.env == 'test' || argv.env == 'local'){
+          msg.options.test = true;
+        }
+        new Tunnel(msg.user.username, msg.user.authkey, msg.options).start()
+      })
 
-    socket.on('keepalive_check', () => {
-      socket.emit('keepalive_ack');
-    })
+      socket.on('keepalive_check', () => {
+        socket.emit('keepalive_ack');
+      })
 
-    socket.on('unauthorized', function(err) {
-      // `unauthorized` is emitted by socketio-auth server when auth fails
-      // connection is closed by the server
-      console.log("authentication failed! Reason: " + err);
+      socket.on('unauthorized', function(err) {
+        // `unauthorized` is emitted by socketio-auth server when auth fails
+        // connection is closed by the server
+        console.log("authentication failed! Reason: " + err);
+      });
+
+      socket.on('bye', () => {
+        console.log("got bye");
+        socket.disconnect();
+      })
     });
-
-    socket.on('bye', () => {
-      console.log("got bye");
-      socket.disconnect();
-    })
-  });
+  } else {
+    console.log("Reconnected!");
+  }
 })
 
   
