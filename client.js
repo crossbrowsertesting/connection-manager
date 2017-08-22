@@ -79,6 +79,7 @@ socket.on('reconnect_failed', (err) => {
 
 socket.on('connect', () => {
   if (alreadyConnected === false){
+    alreadyConnected = true;
     console.log("connection established! Initiating auth!");
     socket.emit('authenticate', {username: argv.username, authkey: argv.authkey});
     socket.on('authenticated', function() {
