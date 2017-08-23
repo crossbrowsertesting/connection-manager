@@ -2,7 +2,7 @@
 var socketIo = require('socket.io-client');
 var http = require('http');
 var Tunnel = require('./tunnel');
-var util = require('./utils');
+var utils = require('./utils');
 var express = require('express');
 
 // simple arg parser
@@ -30,15 +30,16 @@ function getApiUrl(env){
     case 'qa':
       return 'https://qaapp.crossbrowsertesting.com/localconman';
     case 'test':
-      // return 'https://test.crossbrowsertesting.com/localconman'
-      return 'http://173.12.250.100/localconman';
+      return 'http://test.crossbrowsertesting.com/localconman'
+      // return 'http://173.12.250.100/localconman';
     case 'local':
       return 'http://localhost:3000/localconman';
   }
 }
 
 // only work if this version is in date
-util.checkVersion( () => {
+// ( or if we can't reach cbt to check... )
+utils.checkVersion( () => {
 
   // var socket = socketIo("http://localhost:3000/socket", { path: "/socket"} );
   // var socket = socketIo.connect("http://localhost:3000/socket/socket");
@@ -65,11 +66,11 @@ util.checkVersion( () => {
   })
 
   socket.on('reconnecting', () => {
-    console.log('Socket reconnecting...');
+    console.log('Connection lost, attempting to reconnect...');
   })
 
   socket.on('reconnect_error', (err) => {
-    console.log('reconnect error: ' + err);
+    console.log('reconnect error: Could not connect to crossbrowsertesting.com' + err);
   })
 
   socket.on('reconnect_failed', (err) => {
@@ -91,6 +92,10 @@ util.checkVersion( () => {
       console.log("got a start message! time to start a tunnel....");
       console.log("message is: " + msg)
       msg = JSON.parse(msg);
+      console.log('typeof msg: ' + typeof msg);
+      console.log('after parse msg is : ' + JSON.stringify(msg));
+      console.log('type: ' + typeof msg.options);
+      console.log(msg.options);
       // start the tunnel!
       if (argv.env == 'test' || argv.env == 'local'){
         msg.options.test = true;

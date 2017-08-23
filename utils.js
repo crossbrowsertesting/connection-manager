@@ -28,10 +28,11 @@ function versCmp(x, y){
 function getConManVersion(cb){
   // request.get('https://crossbrowsertesting.com/api/v3/localconman/version', (err, resp, body) => {
   request.get('http://localhost:3000/api/v3/localconman/version', (err, resp, body) => {
+    if (err){ return cb(err) };
     try {
       version = JSON.parse(body);
-    } catch (err) {
-      cb(err);
+    } catch (ex) {
+      cb(ex);
     }
     cb(null, version);
   })

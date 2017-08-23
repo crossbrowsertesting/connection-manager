@@ -8,6 +8,10 @@ var createLaunchArgs = function(user, auth, params){
   args.push('--username', user);
   args.push('--authkey', auth);
   args.push('--quiet');
+  if (params.proxyIp == 'localhost'){
+    params.proxyIp = null;
+    params.proxyPort = null;
+  }
   if(!!params){
     for (key in params){
       if (!!params[key]){
