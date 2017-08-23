@@ -30,7 +30,8 @@ function getApiUrl(env){
     case 'qa':
       return 'https://qaapp.crossbrowsertesting.com/localconman';
     case 'test':
-      return 'http://test.crossbrowsertesting.com/localconman'
+      return 'https://test.crossbrowsertesting.com/localconman'
+      // return 'https://testapp2.crossbrowsertesting.com/localconman'
       // return 'http://173.12.250.100/localconman';
     case 'local':
       return 'http://localhost:3000/localconman';
@@ -45,8 +46,9 @@ utils.checkVersion( () => {
   // var socket = socketIo.connect("http://localhost:3000/socket/socket");
   var socket = socketIo(getApiUrl(argv.env),
     { path: "/api/v3/socket.io",
-      reconnect: true,
-      extraHeaders: {'heyo': 'forealz'}
+      // need to make sure that only websockets protocol is used
+      transports: ['websocket'], 
+      upgrade: false
     }
   );
 
