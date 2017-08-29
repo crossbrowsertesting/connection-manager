@@ -25,9 +25,14 @@ function versCmp(x, y){
   return 0;
 }
 
-function getConManVersion(cb){
+function getConManVersion(env, cb){
   // request.get('https://crossbrowsertesting.com/api/v3/localconman/version', (err, resp, body) => {
-  request.get('http://localhost:3000/api/v3/localconman/version', (err, resp, body) => {
+  var urls = {
+    'local': 'http://localhost:3000',
+    'test': 'http://test.crossbrowsertesting.com',
+    'prod': 'http://crossbrowsertesting.com'
+  }
+  request.get(urls[env] + '/api/v3/localconman/version', (err, resp, body) => {
     if (err){ return cb(err) };
     try {
       version = JSON.parse(body);
@@ -39,11 +44,11 @@ function getConManVersion(cb){
 }
 
 
-function checkVersion(cb){
+function checkVersion(env, cb){
   var pjson = require('./package.json');
   var installedVersion = pjson.version;
   console.log('Checking version...');
-  version = getConManVersion( (err, versionsFromNode) => {
+  version = getConManVersion(env, (err, versionsFromNode) => {
     // if the current version is lower than or equal to the blocked version
     if (err){
       console.log("Error checking for updates. Local Connection Manager may not function properly.");

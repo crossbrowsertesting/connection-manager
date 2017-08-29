@@ -40,7 +40,7 @@ function getApiUrl(env){
 
 // only work if this version is in date
 // ( or if we can't reach cbt to check... )
-utils.checkVersion( () => {
+utils.checkVersion( argv.env, () => {
 
   // var socket = socketIo("http://localhost:3000/socket", { path: "/socket"} );
   // var socket = socketIo.connect("http://localhost:3000/socket/socket");
@@ -100,7 +100,7 @@ utils.checkVersion( () => {
       console.log(msg.options);
       // start the tunnel!
       if (argv.env == 'test' || argv.env == 'local'){
-        msg.options.test = true;
+        msg.options.test = 'test';
       }
       new Tunnel(msg.user.username, msg.user.authkey, msg.options).start()
     });
