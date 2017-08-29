@@ -34,6 +34,7 @@ function getConManVersion(env, cb){
   }
   request.get(urls[env] + '/api/v3/localconman/version', (err, resp, body) => {
     if (err){ return cb(err) };
+    if (resp.statusCode !== 200){ return cb(new Error(body))};
     try {
       version = JSON.parse(body);
     } catch (ex) {
