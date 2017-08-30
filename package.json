@@ -1,8 +1,8 @@
 {
-  "name": "cbt-connection-manager",
+  "name": "cbt-enterprise-connection-manager",
   "version": "1.0.0",
   "description": "A small NodeJS utility to manage local connections",
-  "main": "enterprise-connection-manager.js",
+  "main": "cbt-enterprise-connection-manager.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -22,7 +22,7 @@
     "socket.io-client": "^2.0.0"
   },
   "bin": {
-    "cbt-ecm": "enterprise-connection-manager.js"
+    "cbt-enterprise-connection-manager": "cbt-enterprise-connection-manager.js"
   },
   "bugs": {
     "url": "https://github.com/crossbrowsertesting/connection-manager/issues"

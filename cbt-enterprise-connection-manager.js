@@ -1,3 +1,4 @@
+#!/usr/local/bin/node
 "use strict";
 var socketIo = require('socket.io-client');
 var http = require('http');
