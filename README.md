@@ -34,7 +34,7 @@ this.
 4. Optional: create a link to a folder in your path: `$ ln -s cbt-enterprise-connection-manager.js ~/bin/cbt-ecm`
 
 ### Install with pre-compiled binary:
-*Coming soon! If this is something you would like to see, let us know.*
+*Coming soon! If this is something you would like to see ASAP, [let us know](mailto:support@crossbrowsertesting.com).*
 
 ### Then run it!
  Run the program: 
