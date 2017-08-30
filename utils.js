@@ -52,18 +52,18 @@ function checkVersion(env, cb){
   version = getConManVersion(env, (err, versionsFromNode) => {
     // if the current version is lower than or equal to the blocked version
     if (err){
-      console.log("Error checking for updates. Local Connection Manager may not function properly.");
+      console.log("Error checking for updates. Enterprise Connection Manager may not function properly.");
     } else if ( versCmp(installedVersion, versionsFromNode.blockedVersion) <= 0 ) {
-      console.log("CBT Local Connection Manager is woefully out of date!\n");
+      console.log("CBT Enterprise Connection Manager is woefully out of date!\n");
       console.log(`Newest version (${versionsFromNode.currentVersion}) vs installed version (${installedVersion})`);
-      console.log("Please download the new binary or run 'npm update -g cbt_local_connection_manager'");
+      console.log("Please download the new binary or run 'npm update -g cbt_enterprise_connection_manager'");
       process.exit(1);
     } else if ( versCmp(installedVersion, versionsFromNode.deprecatedVersion) <= 0 ){
-      console.log("CBT Local Connection Manager is deprecated!");
+      console.log("CBT Enterprise Connection Manager is deprecated!");
       console.log(`Newest version (${versionsFromNode.currentVersion}) vs installed version (${installedVersion})`);
       console.log("It will continue to work for now, but we recommend updating soon.");
     } else if ( versCmp(installedVersion, versionsFromNode.currentVersion) < 0 ){
-      console.log("Update available! Please download the new binary or run 'npm update -g cbt_local_connection_manager'");
+      console.log("Update available! Please download the new binary or run 'npm update -g cbt_enterprise_connection_manager'");
     } else if ( versCmp(installedVersion, versionsFromNode.currentVersion) == 0 ){
       console.log("Up to date!");
     }
