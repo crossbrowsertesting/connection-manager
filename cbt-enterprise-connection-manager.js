@@ -87,18 +87,13 @@ utils.checkVersion( argv.env, () => {
 
     socket.on('authenticated', function() {
       // `authenticated` is emitted by socketio-auth server 
-      console.log("authentication successful!");
+      console.log("Authentication successful! Waiting for a request to open a tunnel...");
       // setup the other socket message handlers
     });
 
     socket.on('start', (msg) => {
-      console.log("got a start message! time to start a tunnel....");
-      console.log("message is: " + msg)
       msg = JSON.parse(msg);
-      console.log('typeof msg: ' + typeof msg);
-      console.log('after parse msg is : ' + JSON.stringify(msg));
-      console.log('type: ' + typeof msg.options);
-      console.log(msg.options);
+      console.log("Starting a tunnel for " + msg.user.username);
       // start the tunnel!
       if (argv.env == 'test' || argv.env == 'local'){
         msg.options.test = 'test';
