@@ -6,7 +6,8 @@ var createLaunchArgs = function(user, auth, params){
   // add username and authkey
   args.push('--username', user);
   args.push('--authkey', auth);
-  args.push('--quiet');
+  // args.push('--quiet');
+  args.push('--verbose');
   if (params.proxyIp == 'localhost'){
     params.proxyIp = null;
     params.proxyPort = null;
@@ -14,6 +15,11 @@ var createLaunchArgs = function(user, auth, params){
   if(!!params){
     for (key in params){
       if (!!params[key]){
+        if (key === "direct_resolution"){
+          key = "bypass"
+        } else if(key === "tunnel_source"){
+          continue;
+        }
         args.push('--' + key, params[key])
       }
     }
