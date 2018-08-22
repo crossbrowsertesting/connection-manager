@@ -64,6 +64,7 @@ var Tunnel = function(user, auth, params){
     let tunnelOptions = apiTunnelParamsToOptions(params);
     tunnelOptions.username = user;
     tunnelOptions.authkey = auth;
+    tunnelOptions.nokill = true;
     // need to omit tunnel_source param
     tunnelOptions = _.omit(tunnelOptions, 'tunnel_source')
     console.log(`making a new tunnel for ${user} with params: ` + util.inspect(tunnelOptions))
@@ -94,7 +95,7 @@ var Tunnel = function(user, auth, params){
 
   this.stop = (cb) => {
     // this.tunnelProc.kill();
-    this.tunnelProc.stop();
+    cbt_tunnels.stop(cb);
   }
 }
 

@@ -24,6 +24,8 @@ var argv = require('yargs')
   })
   .argv;
 
+var tunnels = [];
+
 function getApiUrl(env){
   switch(env){
     case 'prod':
@@ -93,12 +95,13 @@ utils.checkVersion( argv.env, () => {
 
     socket.on('start', (msg) => {
       msg = JSON.parse(msg);
-      console.log("Starting a tunnel for " + msg.user.username);
       // start the tunnel!
       if (argv.env == 'test' || argv.env == 'local'){
         msg.options.test = 'test';
       }
-      new Tunnel(msg.user.username, msg.user.authkey, msg.options).start()
+      var t = new Tunnel(msg.user.username, msg.user.authkey, msg.options)
+      tunnels.push(t)
+      t.start()
     });
 
     socket.on('keepalive_check', () => {
@@ -119,5 +122,15 @@ utils.checkVersion( argv.env, () => {
   })
 
 
+  process.on('SIGINT', () => {
+    console.log('\nECM is shutting down');
+    console.dir(tunnels)
+    tunnels.map( (tunnel, tunnelIndex) => {
+      tunnel.stop( () => {
+      })
+    })
+
+    setTimeout(() => {process.exit(0)}, 7000);
+  })
 });
 
