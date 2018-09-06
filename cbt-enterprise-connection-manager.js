@@ -4,7 +4,6 @@ var socketIo = require('socket.io-client');
 var http = require('http');
 var Tunnel = require('./tunnel');
 var utils = require('./utils');
-var express = require('express');
 
 // simple arg parser
 // args are stored in argv object
