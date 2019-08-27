@@ -89,7 +89,7 @@ utils.checkVersion( argv.env, () => {
   })
 
   socket.on('reconnect_error', (err) => {
-    console.log('reconnect error: Could not connect to crossbrowsertesting.com' + err);
+    console.log('reconnect error: Could not connect: ' + err);
   })
 
   socket.on('reconnect_failed', (err) => {
