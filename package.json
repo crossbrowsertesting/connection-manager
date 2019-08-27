@@ -1,6 +1,6 @@
 {
   "name": "cbt-enterprise-connection-manager",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "A small NodeJS utility to manage local connections",
   "main": "cbt-enterprise-connection-manager.js",
   "scripts": {
