@@ -2,6 +2,7 @@
 "use strict";
 var WebSocket = require('ws')
 var http = require('http');
+var tls = require('tls');
 var url = require('url');
 var Tunnel = require('./tunnel');
 var utils = require('./utils');
@@ -19,14 +20,27 @@ var argv = require('yargs')
     },
     'env': {
       description: false,
+      hide: true,
       default: 'prod'
     },
+    'acceptAllCerts': {
+      description: false,
+      hide: true,
+      default: false
+    }
 
   })
   .argv;
 
+
+
 var httpProxy  = process.env.http_proxy  || process.env.HTTP_PROXY  || null
 var httpsProxy = process.env.https_proxy || process.env.HTTPS_PROXY || null
+
+if (argv.acceptAllCerts){
+    console.log('setting reject_unauthorized = 0')
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
 
 var tunnels = [];
 
@@ -51,28 +65,36 @@ utils.checkVersion( argv.env, () => {
 
   // var socket = socketIo("http://localhost:3000/socket", { path: "/socket"} );
   // var socket = socketIo.connect("http://localhost:3000/socket/socket");
-  var proxy = httpProxy || httpsProxy
+  let proxy = httpProxy || httpsProxy
+
+  let socket
 
   if(proxy){
       console.log('going to setup proxy agent')
-      var proxyURL = new url.URL(proxy)
-      var proxyAgentOpts ={
+      let proxyURL = new url.URL(proxy)
+      let proxyAgentOpts ={
           host:proxyURL.hostname,
           port: proxyURL.port,
           auth: proxyURL.username ? `${proxyURL.username}:${proxyURL.password}` : ``,
           secureProxy:true
       }
       console.log('proxy agent opts: ' + JSON.stringify(proxyAgentOpts))
-      var proxyAgent = new ProxyAgent(proxyAgentOpts)
-      var socket = new WebSocket(getApiUrl(argv.env), {agent: proxyAgent});
+      let proxyAgent = new ProxyAgent(proxyAgentOpts)
+      socket = new WebSocket(getApiUrl(argv.env), {agent: proxyAgent});
   } else {
-      var socket = new WebSocket(getApiUrl(argv.env));
+      socket = new WebSocket(getApiUrl(argv.env));
   }
 
 
-  socket.on('error', (err) => {
+
+  socket.on('error', function(err){
     console.log("Socket error!!");
-    console.log(err.stack);
+    console.dir(err);
+    let apiUrl = new url.URL(getApiUrl(argv.env));
+    var tlsSocket = tls.connect({host: apiUrl.hostname, port:443, rejectUnauthorized: false}, () => {
+      console.log('TLS connect successful, getting certificates from peer')
+      console.log(tlsSocket.getPeerCertificate(true))
+    })
   })
 
   socket.on('disconnect', () => {

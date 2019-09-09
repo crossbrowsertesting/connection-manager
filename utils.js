@@ -31,7 +31,7 @@ function getConManVersion(env, cb){
     'local': 'http://localhost:3000',
     'test': 'http://test.crossbrowsertesting.com',
     'qa'  : 'http://qaapp.crossbrowsertesting.com',
-    'prod': 'http://app.crossbrowsertesting.com'
+    'prod': 'http://livetestdirect.crossbrowsertesting.com'
   }
   request.get(urls[env] + '/api/v3/localconman/version', (err, resp, body) => {
     if (err){ return cb(err) };
