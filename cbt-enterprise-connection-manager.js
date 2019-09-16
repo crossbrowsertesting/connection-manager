@@ -8,6 +8,8 @@ var Tunnel = require('./tunnel');
 var utils = require('./utils');
 var ProxyAgent = require('https-proxy-agent');
 
+var RECONNECTING = false;
+
 // simple arg parser
 // args are stored in argv object
 var argv = require('yargs')
@@ -86,6 +88,9 @@ function cbtConnect() {
 
 
   socket.on('error', function(err){
+    if (RECONNECTING){
+
+    }
     console.log("Socket error!!");
     console.dir(err);
     let apiUrl = new url.URL(getApiUrl(argv.env));
@@ -96,8 +101,20 @@ function cbtConnect() {
   })
 
   socket.on('close', () => {
-    console.log('disconnect!!!')
-    cbtConnect()
+    console.log('Signalling socket disconnected')
+    RECONNECTING = true
+    let reconnectInterval = setInterval( () => {
+        if (socket.readyState === 0) {
+            // socket is still connecting... just wait
+        } else if (socket.readyState === 1){
+            // socket is reconnected!
+            RECONNECTING = false
+            clearInterval(reconnectInterval)
+        } else {
+            console.log('Signalling socket reconnecting...')
+            cbtConnect()
+        }
+    }, 500)
   })
 
   socket.once('open', () => {
