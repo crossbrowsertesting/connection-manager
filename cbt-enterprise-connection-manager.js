@@ -89,15 +89,16 @@ function cbtConnect() {
 
   socket.on('error', function(err){
     if (RECONNECTING){
-
+      // console.log('reconnecting...')
+    } else {
+      console.log("Socket error!!");
+      console.dir(err);
+      let apiUrl = new url.URL(getApiUrl(argv.env));
+      var tlsSocket = tls.connect({host: apiUrl.hostname, port:443, rejectUnauthorized: false}, () => {
+        console.log('TLS connect successful, getting certificates from peer')
+        console.log(tlsSocket.getPeerCertificate(true))
+      })
     }
-    console.log("Socket error!!");
-    console.dir(err);
-    let apiUrl = new url.URL(getApiUrl(argv.env));
-    var tlsSocket = tls.connect({host: apiUrl.hostname, port:443, rejectUnauthorized: false}, () => {
-      console.log('TLS connect successful, getting certificates from peer')
-      console.log(tlsSocket.getPeerCertificate(true))
-    })
   })
 
   socket.on('close', () => {
