@@ -95,27 +95,10 @@ function cbtConnect() {
     })
   })
 
-  socket.on('disconnect', () => {
+  socket.on('close', () => {
+    console.log('disconnect!!!')
     cbtConnect()
   })
-
-  socket.on('reconnect', () => {
-    console.log("connection re-established! Re authing!");
-    socket.send(JSON.stringify( {action: 'authenticate', username: argv.username, authkey: argv.authkey}));
-  })
-
-  socket.on('reconnecting', () => {
-    console.log('Connection lost, attempting to reconnect...');
-  })
-
-  socket.on('reconnect_error', (err) => {
-    console.log('reconnect error: Could not connect: ' + err);
-  })
-
-  socket.on('reconnect_failed', (err) => {
-    console.log('reconnect failed');
-  })
-
 
   socket.once('open', () => {
     console.log("connection established! Initiating auth!");
