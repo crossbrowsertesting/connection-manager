@@ -8,6 +8,8 @@ var Tunnel = require('./tunnel');
 var utils = require('./utils');
 var ProxyAgent = require('https-proxy-agent');
 
+var RECONNECTING = false;
+
 // simple arg parser
 // args are stored in argv object
 var argv = require('yargs')
@@ -59,15 +61,13 @@ function getApiUrl(env){
   }
 }
 
-// only work if this version is in date
-// ( or if we can't reach cbt to check... )
-utils.checkVersion( argv.env, () => {
+var socket
+
+function cbtConnect() {
 
   // var socket = socketIo("http://localhost:3000/socket", { path: "/socket"} );
   // var socket = socketIo.connect("http://localhost:3000/socket/socket");
   let proxy = httpProxy || httpsProxy
-
-  let socket
 
   if(proxy){
       console.log('going to setup proxy agent')
@@ -88,36 +88,35 @@ utils.checkVersion( argv.env, () => {
 
 
   socket.on('error', function(err){
-    console.log("Socket error!!");
-    console.dir(err);
-    let apiUrl = new url.URL(getApiUrl(argv.env));
-    var tlsSocket = tls.connect({host: apiUrl.hostname, port:443, rejectUnauthorized: false}, () => {
-      console.log('TLS connect successful, getting certificates from peer')
-      console.log(tlsSocket.getPeerCertificate(true))
-    })
+    if (RECONNECTING){
+      // console.log('reconnecting...')
+    } else {
+      console.log("Socket error!!");
+      console.dir(err);
+      let apiUrl = new url.URL(getApiUrl(argv.env));
+      var tlsSocket = tls.connect({host: apiUrl.hostname, port:443, rejectUnauthorized: false}, () => {
+        console.log('TLS connect successful, getting certificates from peer')
+        console.log(tlsSocket.getPeerCertificate(true))
+      })
+    }
   })
 
-  socket.on('disconnect', () => {
-    console.log("Socket disconnected");
+  socket.on('close', () => {
+    console.log('Signalling socket disconnected')
+    RECONNECTING = true
+    let reconnectInterval = setInterval( () => {
+        if (socket.readyState === 0) {
+            // socket is still connecting... just wait
+        } else if (socket.readyState === 1){
+            // socket is reconnected!
+            RECONNECTING = false
+            clearInterval(reconnectInterval)
+        } else {
+            console.log('Signalling socket reconnecting...')
+            cbtConnect()
+        }
+    }, 500)
   })
-
-  socket.on('reconnect', () => {
-    console.log("connection re-established! Re authing!");
-    socket.send(JSON.stringify( {action: 'authenticate', username: argv.username, authkey: argv.authkey}));
-  })
-
-  socket.on('reconnecting', () => {
-    console.log('Connection lost, attempting to reconnect...');
-  })
-
-  socket.on('reconnect_error', (err) => {
-    console.log('reconnect error: Could not connect: ' + err);
-  })
-
-  socket.on('reconnect_failed', (err) => {
-    console.log('reconnect failed');
-  })
-
 
   socket.once('open', () => {
     console.log("connection established! Initiating auth!");
@@ -158,8 +157,13 @@ utils.checkVersion( argv.env, () => {
         }
     })
   })
+}
 
 
+// only work if this version is in date
+// ( or if we can't reach cbt to check... )
+utils.checkVersion( argv.env, () => {
+    cbtConnect()
   process.on('SIGINT', () => {
     console.log('\nECM is shutting down');
     if (tunnels.length === 0){
@@ -172,5 +176,6 @@ utils.checkVersion( argv.env, () => {
 
     setTimeout(() => {process.exit(0)}, 7000);
   })
-});
+})
+
 
