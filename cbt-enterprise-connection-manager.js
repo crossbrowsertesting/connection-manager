@@ -59,9 +59,7 @@ function getApiUrl(env){
   }
 }
 
-// only work if this version is in date
-// ( or if we can't reach cbt to check... )
-utils.checkVersion( argv.env, () => {
+function cbtConnect() {
 
   // var socket = socketIo("http://localhost:3000/socket", { path: "/socket"} );
   // var socket = socketIo.connect("http://localhost:3000/socket/socket");
@@ -98,7 +96,7 @@ utils.checkVersion( argv.env, () => {
   })
 
   socket.on('disconnect', () => {
-    console.log("Socket disconnected");
+    cbtConnect()
   })
 
   socket.on('reconnect', () => {
@@ -158,8 +156,13 @@ utils.checkVersion( argv.env, () => {
         }
     })
   })
+}
 
 
+// only work if this version is in date
+// ( or if we can't reach cbt to check... )
+utils.checkVersion( argv.env, () => {
+    cbtConnect()
   process.on('SIGINT', () => {
     console.log('\nECM is shutting down');
     if (tunnels.length === 0){
@@ -172,5 +175,6 @@ utils.checkVersion( argv.env, () => {
 
     setTimeout(() => {process.exit(0)}, 7000);
   })
-});
+})
+
 
