@@ -61,13 +61,13 @@ function getApiUrl(env){
   }
 }
 
+var socket
+
 function cbtConnect() {
 
   // var socket = socketIo("http://localhost:3000/socket", { path: "/socket"} );
   // var socket = socketIo.connect("http://localhost:3000/socket/socket");
   let proxy = httpProxy || httpsProxy
-
-  let socket
 
   if(proxy){
       console.log('going to setup proxy agent')
