@@ -71,6 +71,9 @@ function cbtConnect() {
 
   if(proxy){
       console.log('going to setup proxy agent')
+      if (proxy.indexOf('http') !== 0){
+          proxy = 'http://' + proxy
+      }
       let proxyURL = new url.URL(proxy)
       let proxyAgentOpts ={
           host:proxyURL.hostname,
@@ -78,7 +81,6 @@ function cbtConnect() {
           auth: proxyURL.username ? `${proxyURL.username}:${proxyURL.password}` : ``,
           secureProxy:true
       }
-      console.log('proxy agent opts: ' + JSON.stringify(proxyAgentOpts))
       let proxyAgent = new ProxyAgent(proxyAgentOpts)
       socket = new WebSocket(getApiUrl(argv.env), {agent: proxyAgent});
   } else {
