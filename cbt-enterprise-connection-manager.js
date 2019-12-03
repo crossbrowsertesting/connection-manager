@@ -6,7 +6,10 @@ var tls = require('tls');
 var url = require('url');
 var Tunnel = require('./tunnel');
 var utils = require('./utils');
+var util = require('util');
 var ProxyAgent = require('https-proxy-agent');
+
+var Logger = require('./log');
 
 var RECONNECTING = false;
 
@@ -29,20 +32,57 @@ var argv = require('yargs')
       description: false,
       hide: true,
       default: false
-    }
+    },
+    'verbose': {
+        alias: 'v',
+        count: true,
+        conflicts: 'quiet'
 
+    },
+    'quiet': {
+        alias: 'q',
+        boolean: true,
+        conflicts: 'verbose'
+    }
   })
   .argv;
 
+// parse logging args and create logger
+let initialLogLevel;
+if (argv.quiet){
+  // no logs if quiet option specified
+  initialLogLevel = 'OFF';
+} else {
+  // otherwise, log level based on count of verbose flags
+  switch (argv.verbose){
+    case 0:
+      initialLogLevel = 'WARN';
+      break;
+    case 1:
+      initialLogLevel = 'INFO';
+      break;
+    case 2:
+      initialLogLevel = 'DEBUG';
+      break;
+    case 3:
+    default:
+      initialLogLevel = 'TRACE';
+      break;
+  }
+}
+const log = new Logger(initialLogLevel);
+// bind to global
+global.log = log
 
-
-var httpProxy  = process.env.http_proxy  || process.env.HTTP_PROXY  || null
-var httpsProxy = process.env.https_proxy || process.env.HTTPS_PROXY || null
-
+// apply acceptAllCerts arg by setting env variable for NodeJS
 if (argv.acceptAllCerts){
-    console.log('setting reject_unauthorized = 0')
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 }
+
+// parse env variables for proxy options
+let httpProxy  = process.env.http_proxy  || process.env.HTTP_PROXY  || null;
+let httpsProxy = process.env.https_proxy || process.env.HTTPS_PROXY || null;
+let proxyUrl = httpProxy || httpsProxy;
 
 var tunnels = [];
 
@@ -61,102 +101,128 @@ function getApiUrl(env){
   }
 }
 
+function createProxyAgent(proxyUrl){
+  if (proxyUrl.indexOf('http') !== 0){
+    proxyUrl = 'http://' + proxyUrl
+  }
+  proxyUrl = new url.URL(proxyUrl)
+  let proxyAgentOpts ={
+    host:proxyUrl.hostname,
+    port: proxyUrl.port,
+    auth: proxyUrl.username ? `${proxyUrl.username}:${proxyUrl.password}` : ``,
+    procotol: proxyUrl.protocol
+  }
+  log.debug('ProxyAgent options: ' + util.inspect(proxyAgentOpts))
+  let proxyAgent = new ProxyAgent(proxyAgentOpts)
+}
+
 var socket
 
 function cbtConnect() {
 
-  // var socket = socketIo("http://localhost:3000/socket", { path: "/socket"} );
-  // var socket = socketIo.connect("http://localhost:3000/socket/socket");
-  let proxy = httpProxy || httpsProxy
+  let socketUrl = getApiUrl(argv.env)
 
-  if(proxy){
-      console.log('going to setup proxy agent')
-      if (proxy.indexOf('http') !== 0){
-          proxy = 'http://' + proxy
-      }
-      let proxyURL = new url.URL(proxy)
-      let proxyAgentOpts ={
-          host:proxyURL.hostname,
-          port: proxyURL.port,
-          auth: proxyURL.username ? `${proxyURL.username}:${proxyURL.password}` : ``,
-          secureProxy:true
-      }
-      let proxyAgent = new ProxyAgent(proxyAgentOpts)
-      socket = new WebSocket(getApiUrl(argv.env), {agent: proxyAgent});
+  // create websocket connection (with proxy if specified)
+  if(proxyUrl){
+    let proxyAgent = createProxyAgent(proxyUrl)
+    socket = new WebSocket(socketUrl, {agent: proxyAgent});
   } else {
-      socket = new WebSocket(getApiUrl(argv.env));
+    socket = new WebSocket(socketUrl);
   }
-
-
 
   socket.on('error', function(err){
     if (RECONNECTING){
-      // console.log('reconnecting...')
+      log.debug('Socket error while reconnecting');
+      log.trace('Socket error: ' + (err || err.stack));
     } else {
-      console.log("Socket error!!");
-      console.dir(err);
+      log.error('Socket error: ' + (err || err.stack));
       let apiUrl = new url.URL(getApiUrl(argv.env));
       var tlsSocket = tls.connect({host: apiUrl.hostname, port:443, rejectUnauthorized: false}, () => {
-        console.log('TLS connect successful, getting certificates from peer')
-        console.log(tlsSocket.getPeerCertificate(true))
+        log.debug('TLS connect successful, getting certificates from peer')
+        log.debug(tlsSocket.getPeerCertificate(true))
       })
     }
   })
 
   socket.on('close', () => {
-    console.log('Signalling socket disconnected')
+    log.error('Signalling socket disconnected. Attempting to reconnect.')
     RECONNECTING = true
     let reconnectInterval = setInterval( () => {
         if (socket.readyState === 0) {
             // socket is still connecting... just wait
         } else if (socket.readyState === 1){
             // socket is reconnected!
+            log.info('Socket reconnect successful!')
             RECONNECTING = false
             clearInterval(reconnectInterval)
         } else {
-            console.log('Signalling socket reconnecting...')
+            log.debug('Signalling socket reconnecting...')
             cbtConnect()
         }
     }, 500)
   })
 
   socket.once('open', () => {
-    console.log("connection established! Initiating auth!");
-    socket.send(JSON.stringify({action: 'authenticate', username: argv.username, authkey: argv.authkey}));
+
+    // setup handler for if server stops pinging
+    socket.lastPing = new Date();
+    let serverKeepalive = setInterval(() => {
+        let now = new Date();
+        let timeSincePing = (now - socket.lastPing) / 1000;
+        if (timeSincePing > 15){
+            log.error(`No ping from CBT in ${timeSincePing} seconds. Closing socket to trigger reconnect`)
+            socket.terminate()
+        }
+    }, 500)
+
+    log.info("Socket connection established! Authenticating...");
+    let payload = {action: 'authenticate', username: argv.username, authkey: argv.authkey};
+
+    // clone payload to log it without logging creds
+    let loggablePayload = JSON.parse(JSON.stringify(payload));
+    loggablePayload.authkey = '********';
+    log.trace("ECM => CBT: " + JSON.stringify(loggablePayload));
+
+    socket.send(JSON.stringify(payload));
 
     socket.on('message', msg => {
-        // handle incoming messages through the signaling socket
-        try {
-            msg = JSON.parse(msg)
-        } catch (parseErr) {
-            console.error('could not parse inbound message: ' + msg)
-            return
-        }
+      // handle incoming messages through the signaling socket
+      try {
+        msg = JSON.parse(msg);
+      } catch (parseErr) {
+        log.warn('Could not parse message from CBT. Offending message:' + msg);
+        log.debug('Parse error: ' + (parseErr.stack || parseErr));
+        return;
+      }
 
-        // after parsing successful, each message should come in with an "action"
-        switch(msg.action){
-            case 'authenticated':
-                console.log("Authentication successful! Waiting for a request to open a tunnel...");
-                break
-            case 'start':
-                if (argv.env == 'test' || argv.env == 'local'){
-                    msg.options.test = 'test';
-                }
-                var t = new Tunnel(msg.user.username, msg.user.authkey, msg.options)
-                tunnels.push(t)
-                t.start()
-                break
-            case 'keepalive_check':
-                socket.send(JSON.stringify({action:'keepalive_ack'}))
-                break
-            case 'unauthorized':
-                console.error("authentication failed! " + msg.message)
-                process.exit(1)
-                break
-            case 'bye':
-                console.log("got bye");
-                socket.close();
-        }
+      // after parsing successful, each message should come in with an "action"
+      switch(msg.action){
+        case 'authenticated':
+          log.trace("ECM <= CBT: " + util.inspect(msg));
+          log.info("Authentication successful! Waiting for a request to open a tunnel.");
+          break;
+        case 'start':
+          log.trace("ECM <= CBT: " + util.inspect(msg));
+          if (argv.env == 'test' || argv.env == 'local'){
+            msg.options.test = 'test';
+          }
+          var t = new Tunnel(msg.user.username, msg.user.authkey, msg.options);
+          tunnels.push(t);
+          t.start();
+          break;
+        case 'keepalive_check':
+          socket.lastPing = new Date();
+          socket.send(JSON.stringify({action:'keepalive_ack'}));
+          break;
+        case 'unauthorized':
+          log.trace("ECM <= CBT: " + util.inspect(msg));
+          log.error("Authentication failed! " + msg.message);
+          process.exit(1);
+          break
+        case 'bye':
+          log.info("CBT requested this socket close. Closing socket...");
+          socket.close();
+      }
     })
   })
 }
@@ -166,16 +232,41 @@ function cbtConnect() {
 // ( or if we can't reach cbt to check... )
 utils.checkVersion( argv.env, () => {
     cbtConnect()
-  process.on('SIGINT', () => {
-    console.log('\nECM is shutting down');
-    if (tunnels.length === 0){
-        process.exit(0)
-    }
-    tunnels.map( (tunnel, tunnelIndex) => {
-      tunnel.stop( () => {
-      })
-    })
 
+
+  // attempt graceful shutdown on sigint
+  process.on('SIGINT', () => {
+    log.info('ECM is shutting down');
+
+    if (tunnels.length === 0){
+        log.trace('No tunnels running, quitting now')
+        process.exit(0)
+    } else {
+
+      log.trace(`Currently ${tunnels.length} tunnels running. Going to shut them down before quitting.`)
+      tunnels.map( (tunnel, tunnelIndex) => {
+        log.trace(`Stopping tunnel ${tunnelIndex}`)
+        tunnel.stop( () => { })
+      })
+
+      // quit when all tunnels are stopped
+      setInterval(() => {
+
+          // get status of all tunnels
+          let tunnelStatus = tunnels.map( tunnel => {
+              return tunnel.status()
+          })
+
+          // quit if all tunnels are stopped (status() returns false)
+          if (tunnelStatus.every( tunnel => !tunnel )){
+              log.info('All tunnels stopped')
+              process.exit(0)
+          }
+
+      }, 250)
+    }
+
+    // exit after 7 seconds if there are stubborn tunnels
     setTimeout(() => {process.exit(0)}, 7000);
   })
 })
