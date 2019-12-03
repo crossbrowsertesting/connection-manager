@@ -171,6 +171,7 @@ function cbtConnect() {
         let timeSincePing = (now - socket.lastPing) / 1000;
         if (timeSincePing > 15){
             log.error(`No ping from CBT in ${timeSincePing} seconds. Closing socket to trigger reconnect`)
+            clearInterval(serverKeepalive)
             socket.terminate()
         }
     }, 500)
