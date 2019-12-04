@@ -80,9 +80,7 @@ if (argv.acceptAllCerts){
 }
 
 // parse env variables for proxy options
-let httpProxy  = process.env.http_proxy  || process.env.HTTP_PROXY  || null;
-let httpsProxy = process.env.https_proxy || process.env.HTTPS_PROXY || null;
-let proxyUrl = httpProxy || httpsProxy;
+let proxyUrl = utils.getProxyFromEnv();
 
 var tunnels = [];
 
@@ -102,9 +100,6 @@ function getApiUrl(env){
 }
 
 function createProxyAgent(proxyUrl){
-  if (proxyUrl.indexOf('http') !== 0){
-    proxyUrl = 'http://' + proxyUrl
-  }
   proxyUrl = new url.URL(proxyUrl)
   let proxyAgentOpts ={
     host:proxyUrl.hostname,

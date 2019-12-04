@@ -1,4 +1,5 @@
 var request = require('request');
+var util = require('util');
 
 // create logger if it's not in scope
 if (!global.log){
@@ -50,6 +51,37 @@ function getConManVersion(env, cb){
     cb(null, version);
   })
 }
+
+function getProxyFromEnv(){
+    let proxyEnvVars = [
+        "http_proxy",
+        "HTTP_PROXY",
+        "https_proxy",
+        "HTTPS_PROXY" ];
+
+    proxyEnvVars = proxyEnvVars.filter( (varName, index, arr) => {
+        let proxyUrl = process.env[varName];
+        if (proxyUrl && proxyUrl.indexOf('http') !== 0){
+            // request module wants env var to have 
+            process.env[varName] = 'http://' + proxyUrl;
+        }
+        return proxyUrl;
+    })
+
+    let proxies = proxyEnvVars.map( varName => {
+        return process.env[varName];
+    })
+
+    if (proxies.length > 0){
+        log.trace(`Proxies specified: ${proxies.join(', ')}`);
+        log.trace(`Using ${proxies[0]}`);
+        return proxies[0];
+    } else {
+        // no proxy specified
+        return false
+    }
+}
+module.exports.getProxyFromEnv = getProxyFromEnv
 
 
 function checkVersion(env, cb){
