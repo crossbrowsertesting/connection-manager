@@ -1,4 +1,11 @@
 var request = require('request');
+var util = require('util');
+
+// create logger if it's not in scope
+if (!global.log){
+    var Logger = require('./log')
+    global.log = new Logger('TRACE')
+}
 
 function versCmp(x, y){
   // like strcmp:
@@ -45,32 +52,64 @@ function getConManVersion(env, cb){
   })
 }
 
+function getProxyFromEnv(){
+    let proxyEnvVars = [
+        "http_proxy",
+        "HTTP_PROXY",
+        "https_proxy",
+        "HTTPS_PROXY" ];
+
+    proxyEnvVars = proxyEnvVars.filter( (varName, index, arr) => {
+        let proxyUrl = process.env[varName];
+        if (proxyUrl && proxyUrl.indexOf('http') !== 0){
+            // request module wants env var to have 
+            process.env[varName] = 'http://' + proxyUrl;
+        }
+        return proxyUrl;
+    })
+
+    let proxies = proxyEnvVars.map( varName => {
+        return process.env[varName];
+    })
+
+    if (proxies.length > 0){
+        log.trace(`Proxies specified: ${proxies.join(', ')}`);
+        log.trace(`Using ${proxies[0]}`);
+        return proxies[0];
+    } else {
+        // no proxy specified
+        return false
+    }
+}
+module.exports.getProxyFromEnv = getProxyFromEnv
+
 
 function checkVersion(env, cb){
   var pjson = require('./package.json');
   var installedVersion = pjson.version;
-  console.log('Checking version...');
+  log.debug('Checking version...');
   version = getConManVersion(env, (err, versionsFromNode) => {
     // if the current version is lower than or equal to the blocked version
     if (err){
-      console.log("Error checking for updates. Enterprise Connection Manager may not function properly.");
+      log.error("Error checking for updates. Enterprise Connection Manager may not function properly.");
+      log.error(err.stack || err)
 
     } else if ( versCmp(installedVersion, versionsFromNode.blockedVersion) <= 0 ) {
-      console.log("CBT Enterprise Connection Manager is woefully out of date!\n");
-      console.log(`Newest version (${versionsFromNode.currentVersion}) vs installed version (${installedVersion})`);
-      console.log("Please download the new binary or run 'npm update -g cbt_enterprise_connection_manager'");
+      log.error("CBT Enterprise Connection Manager is woefully out of date and must be updated!\n");
+      log.error(`Newest version (${versionsFromNode.currentVersion}) vs installed version (${installedVersion})`);
+      log.error("Please download the new binary or run 'npm update -g cbt-enterprise-connection-manager'");
       process.exit(1);
 
     } else if ( versCmp(installedVersion, versionsFromNode.deprecatedVersion) <= 0 ){
-      console.log("CBT Enterprise Connection Manager is deprecated!");
-      console.log(`Newest version (${versionsFromNode.currentVersion}) vs installed version (${installedVersion})`);
-      console.log("It will continue to work for now, but we recommend updating soon.");
+      log.warn("CBT Enterprise Connection Manager version is deprecated!");
+      log.warn(`Newest version (${versionsFromNode.currentVersion}) vs installed version (${installedVersion})`);
+      log.warn("It will continue to work for now, but we recommend updating soon.");
 
     } else if ( versCmp(installedVersion, versionsFromNode.currentVersion) < 0 ){
-      console.log("Update available! Please download the new binary or run 'npm update -g cbt_enterprise_connection_manager'");
+      log.info("Update available! Please download the new binary or run 'npm update -g cbt-enterprise-connection-manager'");
 
     } else if ( versCmp(installedVersion, versionsFromNode.currentVersion) >= 0 ){
-      console.log("Up to date!");
+      log.info(`Current version (${installedVersion}) is up to date.`);
     }
 
     cb()

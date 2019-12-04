@@ -3,33 +3,22 @@ var util = require('util');
 var _ = require('lodash');
 var cbt_tunnels = require('cbt_tunnels');
 
-var createLaunchArgs = function(user, auth, params){
-  args = []
-  // add username and authkey
-  args.push('--username', user);
-  args.push('--authkey', auth);
-  // args.push('--quiet');
-  args.push('--verbose');
-  if (params.proxyIp == 'localhost'){
-    params.proxyIp = null;
-    params.proxyPort = null;
-  }
-  if(!!params){
-    for (key in params){
-      if (!!params[key]){
-        if (key === "direct_resolution"){
-          key = "bypass"
-        } else if(key === "tunnel_source"){
-          continue;
-        }
-        args.push('--' + key, params[key])
-      }
-    }
-  }
-  return args;
+// create logger if it's not in scope
+if (!global.log){
+    var Logger = require('./log')
+    global.log = new Logger('TRACE')
 }
 
 var apiTunnelParamsToOptions = function(params){
+  // this function maps options received from CBT to options cbt_tunnels can use
+  log.trace('Creating tunnel launch options from params. Params: ' + util.inspect(params));
+
+  // CBT sends proxy of 'localhost:8080' if no upstream proxy was specified
+  if (params.proxyIp === 'localhost' && params.proxyPort === '8080'){
+    params.proxyIp = null;
+    params.proxyPort = null;
+  }
+
   paramNameMap =  {
     // <cbt api param name>: <cmd arg name>,
     "local_ip": "proxyIp",
@@ -42,7 +31,7 @@ var apiTunnelParamsToOptions = function(params){
     "direct_resolution": "bypass"
   };
 
-  return _.reduce(params, (accum, val, key, coll) => {
+  let tunnelOpts =  _.reduce(params, (accum, val, key, coll) => {
     if (val !== '' && val !== null){
       if (key in paramNameMap){
         let newKeyName = paramNameMap[key];
@@ -51,51 +40,44 @@ var apiTunnelParamsToOptions = function(params){
         accum[key] = val;
       }
     } else {
-      return accum
+      return accum;
     }
-    return accum
+    return accum;
   }, {})
+  log.trace('Created tunnel options: ' + util.inspect(tunnelOpts));
+  return tunnelOpts;
 }
+
 var Tunnel = function(user, auth, params){
-  this.args = createLaunchArgs(user,auth,params);
-  this.tunnelLogs = ''
+  // this.args = createLaunchArgs(user,auth,params);
+  // this.tunnelLogs = ''
 
   this.start = (cb) => {
     let tunnelOptions = apiTunnelParamsToOptions(params);
+    
     tunnelOptions.username = user;
     tunnelOptions.authkey = auth;
     tunnelOptions.nokill = true;
+
     // need to omit tunnel_source param
-    tunnelOptions = _.omit(tunnelOptions, 'tunnel_source')
-    console.log(`making a new tunnel for ${user} with params: ` + util.inspect(tunnelOptions))
-    cbt_tunnels.start( tunnelOptions, (err) => {
+    tunnelOptions = _.omit(tunnelOptions, 'tunnel_source');
+
+    log.info(`Starting tunnel for ${user}. Tunnel options: ` + util.inspect(tunnelOptions));
+    cbt_tunnels.start(tunnelOptions, (err) => {
       if (err){
-        console.error('could not start tunnel: ' + err);
+        log.error('Failed to start tunnel: ' + (err.stack || err));
       } else {
-        console.log('started tunnel')
+        log.debug('Tunnel started successfully')
       }
     })
-    // console.log(`going to exec process with: node ./node_modules/cbt_tunnels/cmd_start.js ${this.args.join(' ')}`)
-    // var cbt_tunnels_dir = require.resolve('cbt_tunnels');
-    // this.tunnelProc = exec(`/usr/bin/env node ${__dirname}/node_modules/cbt_tunnels/cmd_start.js ` + this.args.join(' '), (err, stdout, stderr) => {
-    //   console.log("Tunnel closed for " + user);
-    // })
-    // // collect tunnel process logs
-    // this.tunnelProc.stdout.on('data', (chunk) => {
-    //   this.tunnelLogs += chunk
-    // })
-    // this.tunnelProc.on('close', (code) => {
-    //   if (code !== 0){
-    //     console.log("Tunnel for " + user + " crashed! Exit code: " + code)
-    //     console.log("Tunnel logs: " + this.tunnelLogs );
-    //     console.log("Please contact support@crossbrowsertesting.com for help with this.");
-    //   }
-    // })
   }
 
   this.stop = (cb) => {
-    // this.tunnelProc.kill();
     cbt_tunnels.stop(cb);
+  }
+
+  this.status = () => {
+      return cbt_tunnels.status()
   }
 }
 
