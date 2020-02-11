@@ -40,8 +40,7 @@ this.
 
 #### Install with pre-compiled binary:
 
-_Coming soon! If this is something you would like to see ASAP, [let us
-know](mailto:support@crossbrowsertesting.com)_
+Download binaries for Windows, Mac, and Linux from our [Releases Page](https://github.com/crossbrowsertesting/connection-manager/blob/master/README.mdhttps://github.com/crossbrowsertesting/connection-manager/blob/master/README.md).
 
 #### Then run it!
 
