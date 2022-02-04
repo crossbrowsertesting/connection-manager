@@ -23,7 +23,7 @@
     "request": "^2.88.0",
     "socket.io-client": "2.2.0",
     "ws": "^7.1.2",
-    "yargs": "^12.0.1"
+    "yargs": "^15.0.0"
   },
   "bin": {
     "cbt-enterprise-connection-manager": "cbt-enterprise-connection-manager.js"
